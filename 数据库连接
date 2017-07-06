@@ -1,0 +1,64 @@
+package models
+
+import (
+	"os"
+	"strings"
+
+	"github.com/astaxie/beego/orm"
+	_ "github.com/go-sql-driver/mysql" //needed by beegoORM
+)
+
+func init() {
+	//Register Tables
+	//orm.RegisterModel("mysql", new(AppInfo))
+	//orm.RegisterModel("mysql", new(RcHistory))
+	orm.RegisterModel("mysql", new(UpdateTaskInfo))
+	orm.RegisterModel("mysql", new(PodInfo))
+	// orm.RegisterModel("mysql", new(RcInfo))
+	// orm.RegisterModel("mysql", new(SvcInfo))
+	// orm.RegisterModel("mysql", new(K8sApp))
+	orm.RegisterModel("mysql", new(K8sSecret))
+}
+func connect(config map[string]string) {
+	//Setup DB connection
+	sqlDriver := "mysql"
+	if strings.ToLower(os.Getenv("debug")) == "true" {
+		//打开查寻日志
+		orm.Debug = true
+	}
+
+	dbURL := config["DatasourceURL"]
+
+	if dbURL == "" {
+		panic("DB_URL can not be empty")
+	}
+	// Register DB drivers
+	err := orm.RegisterDriver(sqlDriver, orm.DR_MySQL)
+	if err != nil {
+		panic(err)
+	}
+	// 参数1        数据库的别名，用来在 ORM 中切换数据库使用
+    // 参数2        driverName
+    // 参数3        对应的链接字符串
+    // 参数4(可选)  设置最大空闲连接
+    // 参数5(可选)  设置最大数据库连接 (go >= 1.2)
+	err = orm.RegisterDataBase("default", sqlDriver, dbURL, 30, 30, 300)
+	if err != nil {
+		panic(err)
+	}
+	//Register Tables
+	//orm.RegisterModel(sqlDriver, new(AppInfo))
+}
+    
+//Setup setup the DB connection and do tables creation
+func Setup(config map[string]string) {
+	connect(config)
+	name := "default"
+	force := false
+	verbose := true
+	//创建表
+	err := orm.RunSyncdb(name, force, verbose)
+	if err != nil {
+		panic(err)
+	}
+}
